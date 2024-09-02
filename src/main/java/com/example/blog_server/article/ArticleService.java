@@ -1,5 +1,6 @@
 package com.example.blog_server.article;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -117,5 +118,11 @@ public class ArticleService {
         } else {
             throw new ArticleNotFoundException(id); // Custom exception if article not found
         }
+    }
+
+    public List<ArticleEntity> getArticlesByUserId(Long userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserService.UserNotFoundException(userId));
+        return articleRepository.findAllByAuthorId(userId);
     }
 }

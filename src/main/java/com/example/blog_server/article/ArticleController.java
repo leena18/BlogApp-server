@@ -1,7 +1,7 @@
 package com.example.blog_server.article;
 
 import java.net.URI;
-import java.util.Optional;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +21,7 @@ import com.example.blog_server.article.dtos.CreateArticleRequest;
 import com.example.blog_server.article.dtos.UpdateArticleRequest;
 import com.example.blog_server.security.JWTService;
 import com.example.blog_server.user.UserEntity;
+import com.example.blog_server.user.UserService;
 
 @RestController
 @RequestMapping("/articles")
@@ -28,6 +29,7 @@ public class ArticleController {
 
     private final ArticleService articleService;
     private final JWTService jwtService;
+
     public ArticleController(ArticleService articleService, JWTService jwtService) {
         this.articleService = articleService;
         this.jwtService = jwtService;
@@ -48,8 +50,7 @@ public class ArticleController {
     @GetMapping("/{id}")
     public ResponseEntity<ArticleEntity> getArticleById(@PathVariable("id") Long id) {
         try {
-            ArticleEntity article = articleService.getArticleById(id).get(); // Assuming ID can be slug, otherwise
-                                                                             // adjust this
+            ArticleEntity article = articleService.getArticleById(id).orElseThrow(() -> new ArticleService.ArticleNotFoundException("Article not found"));
             return ResponseEntity.ok(article);
         } catch (ArticleService.ArticleNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -62,7 +63,7 @@ public class ArticleController {
 
     @PostMapping("")
     public ResponseEntity<?> createArticle(@AuthenticationPrincipal UserEntity user,
-            @RequestBody CreateArticleRequest article) {
+                                           @RequestBody CreateArticleRequest article) {
         try {
             if (article.getTitle() != null && article.getBody() != null) {
                 ArticleEntity createdArticle = articleService.createArticle(article, user.getId());
@@ -118,5 +119,15 @@ public class ArticleController {
                     .body("An error occurred while deleting the article");
         }
     }
-    
+
+    @GetMapping("/user/articles")
+    public ResponseEntity<List<ArticleEntity>> getArticlesByUser(@AuthenticationPrincipal UserEntity user) {
+        try {
+            List<ArticleEntity> articles = articleService.getArticlesByUserId(user.getId());
+            return ResponseEntity.ok(articles);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 }
